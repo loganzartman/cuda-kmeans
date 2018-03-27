@@ -7,6 +7,7 @@
 #include <vector>
 #include "KMParams.h"
 #include "km_cpu.h"
+#include "km_cuda.h"
 #include "point.h"
 using namespace std;
 
@@ -33,7 +34,10 @@ int main(int argc, char const *argv[]) {
     // run k-means
     unsigned iterations;
     duration<double> dt;
-    km_cpu_run(kmp, data, centroids, dt, iterations);
+    if (kmp.cpu)
+        km_cpu_run(kmp, data, centroids, dt, iterations);
+    else
+        km_cuda_run(kmp, data, centroids, dt, iterations);
 
     // output timing
     cout << "statistics" << endl;

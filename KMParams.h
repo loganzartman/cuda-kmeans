@@ -13,6 +13,7 @@ struct KMParams {
     unsigned n;
     unsigned dim;
     std::string input;
+    bool cpu;
 
     KMParams(int argc, const char *argv[]) {
         using namespace std;
@@ -30,8 +31,8 @@ struct KMParams {
             "maximum number of k-means iterations")(
             "workers", value<int>()->default_value(1), "number of threads")(
             "input", value<string>()->required(), "input file path")(
-            "output-points", bool_switch()->default_value(false),
-            "output input points");
+            "cpu", bool_switch()->default_value(false),
+            "run CPU implementation instead of CUDA");
 
         // parse options
         store(parse_command_line(argc, argv, desc), vm);
@@ -45,15 +46,17 @@ struct KMParams {
         iterations = vm["iterations"].as<int>();
         workers = vm["workers"].as<int>();
         input = vm["input"].as<string>();
-        n = -1;
-        dim = -1;
+        cpu = vm["cpu"].as<bool>();
+        n = 0;
+        dim = 0;
     }
     KMParams(int clusters, double threshold, int workers, int iterations,
-             unsigned n, unsigned dim)
+             bool cpu, unsigned n, unsigned dim)
         : clusters(clusters),
           threshold(threshold),
           workers(workers),
           iterations(iterations),
+          cpu(cpu),
           n(n),
           dim(dim) {}
     KMParams(const KMParams &kmp) = default;
@@ -62,11 +65,12 @@ struct KMParams {
     void print_params() {
         using namespace std;
         cout << "params" << endl;
-        cout << "clusters,threshold,workers,iterations" << endl;
+        cout << "clusters,threshold,workers,iterations,cpu" << endl;
         cout << clusters << ",";
         cout << threshold << ",";
         cout << workers << ",";
-        cout << iterations << endl;
+        cout << iterations << ",";
+        cout << cpu << endl;
         cout << endl;
     }
 };
