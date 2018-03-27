@@ -19,8 +19,14 @@ clean:
 	-rm -f *.gch
 	-rm -f kmeans
 
-kmeans: kmeans.o
-	$(CXX) $(LDFLAGS) kmeans.o -o kmeans $(LDLIBS)
+kmeans: kmeans.o point.o km_cpu.o
+	$(CXX) $(LDFLAGS) kmeans.o point.o km_cpu.o -o kmeans $(LDLIBS)
 
-kmeans.o: kmeans.c++ KMParams.h
-	$(CXX) $(CXXFLAGS) kmeans.c++ KMParams.h -c
+kmeans.o: kmeans.c++ KMParams.h point.h km_cpu.h
+	$(CXX) $(CXXFLAGS) kmeans.c++ -c
+
+point.o: point.c++ point.h
+	$(CXX) $(CXXFLAGS) point.c++ -c
+
+km_cpu.o: km_cpu.c++ km_cpu.h KMParams.h point.h
+	$(CXX) $(CXXFLAGS) km_cpu.c++ -c

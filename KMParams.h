@@ -10,6 +10,8 @@ struct KMParams {
     double threshold;
     int workers;
     int iterations;
+    unsigned n;
+    unsigned dim;
     std::string input;
 
     KMParams(int argc, const char *argv[]) {
@@ -42,12 +44,17 @@ struct KMParams {
         threshold = vm["threshold"].as<double>();
         iterations = vm["iterations"].as<int>();
         input = vm["input"].as<string>();
+        n = -1;
+        dim = -1;
     }
-    KMParams(int clusters, double threshold, int workers, int iterations)
+    KMParams(int clusters, double threshold, int workers, int iterations,
+             unsigned n, unsigned dim)
         : clusters(clusters),
           threshold(threshold),
           workers(workers),
-          iterations(iterations) {}
+          iterations(iterations),
+          n(n),
+          dim(dim) {}
     KMParams(const KMParams &kmp) = default;
     ~KMParams() = default;
 

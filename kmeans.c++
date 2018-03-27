@@ -1,20 +1,40 @@
+#include "kmeans.h"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include <vector>
 #include "KMParams.h"
+#include "km_cpu.h"
+#include "point.h"
 using namespace std;
-
-vector<double> read_input(string filename, int &n, int &dim);
 
 int main(int argc, char const *argv[]) {
     KMParams kmp(argc, argv);
     kmp.print_params();
 
-    int n, dim;
-    vector<double> data = read_input(kmp.input, n, dim);
+    vector<point_data_t> data_vec = read_input(kmp);
     cout << "input_metadata" << endl;
     cout << "n,dim" << endl;
-    cout << n << endl;
+    cout << kmp.n << "," << kmp.dim << endl;
+    cout << endl;
+
+    // copy data into array
+    point_data_t data[kmp.n * kmp.dim];
+    copy(data_vec.begin(), data_vec.end(), data);
+
+    // randomize centroids
+    point_data_t centroids[kmp.clusters];
+    random_centroids(kmp, data, centroids);
+
+    // run k-means
+    km_cpu_run(kmp, data, centroids);
+
+    // output centroids
+    cout << "centroids" << endl;
+    print_points(kmp, centroids, kmp.clusters);
+    cout << endl;
 
     return 0;
 }
@@ -27,20 +47,20 @@ int main(int argc, char const *argv[]) {
  * @param[out] dim      dimension of each data point
  * @returns the data vector
  */
-vector<double> read_input(string filename, int &n, int &dim) {
-    vector<double> data;
+vector<point_data_t> read_input(KMParams &kmp) {
+    vector<point_data_t> data;
 
     // open file
     ifstream stream;
-    stream.open(filename);
+    stream.open(kmp.input);
 
     // read number of data points
     string _discard;
-    stream >> n;
+    stream >> kmp.n;
     getline(stream, _discard);
 
     // read each data point
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < kmp.n; i++) {
         int index;
         stream >> index;
 
@@ -48,14 +68,56 @@ vector<double> read_input(string filename, int &n, int &dim) {
         getline(stream, line);
         istringstream line_stream(line);
 
-        int dim_counter = 0;
+        unsigned dim_counter = 0;
         double val;
         while (line_stream >> val) {
             data.push_back(val);
             dim_counter++;
         }
-        dim = dim_counter;
+        kmp.dim = dim_counter;
     }
 
     return data;
+}
+
+/**
+ * Populates a point array with randomized centroids.
+ * @param[in]  kmp       K-Means parameters
+ * @param[in]  data      point data to select from
+ * @param[out] centroids array to be populated
+ */
+void random_centroids(const KMParams &kmp, const point_data_t *data,
+                      point_data_t *centroids) {
+    using namespace std;
+
+    // create random machinery
+    random_device rd;
+    mt19937 twister(rd());
+
+    // create indices
+    unsigned indices[kmp.n];
+    iota(indices, indices + kmp.n, 0);
+    shuffle(indices, indices + kmp.n, twister);
+
+    for (int c = 0; c < kmp.clusters; ++c) {
+        const unsigned src = indices[c];
+        point_copy(data, src * kmp.dim, centroids, c * kmp.dim, kmp.dim);
+    }
+}
+
+/**
+ * Prints an array of points in CSV format.
+ * @param[in] kmp  K-Means parameters
+ * @param[in] data data to print
+ * @param[in] n    how many points are in data
+ */
+void print_points(const KMParams &kmp, const point_data_t *data, unsigned n) {
+    for (int i = 0; i < n; ++i) {
+        for (int d = 0; d < kmp.dim; ++d) {
+            if (d > 0)
+                cout << ",";
+            cout << data[i * kmp.dim + d];
+        }
+        cout << endl;
+    }
 }
