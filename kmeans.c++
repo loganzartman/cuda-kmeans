@@ -1,33 +1,35 @@
 #include <fstream>
 #include <iostream>
+#include <vector>
 #include "KMParams.h"
 using namespace std;
 
-double *read_input(string filename, int &n, int &dim);
+vector<double> read_input(string filename, int &n, int &dim);
 
 int main(int argc, char const *argv[]) {
     KMParams kmp(argc, argv);
     kmp.print_params();
 
     int n, dim;
-    double *data = read_input(kmp.input, n, dim);
+    vector<double> data = read_input(kmp.input, n, dim);
     cout << "input_metadata" << endl;
     cout << "n,dim" << endl;
     cout << n << endl;
 
-    delete[] data;
     return 0;
 }
 
 /**
- * Reads a K-Means-lab-formatted input file into a new array.
+ * Reads a K-Means-lab-formatted input file into a new vector.
  * Used to read input for use with KMeans class.
  * @param[in]  filename path to the input file
  * @param[out] n        number of data points
  * @param[out] dim      dimension of each data point
- * @returns a pointer to the heap-allocated data array
+ * @returns the data vector
  */
-double *read_input(string filename, int &n, int &dim) {
+vector<double> read_input(string filename, int &n, int &dim) {
+    vector<double> data;
+
     // open file
     ifstream stream;
     stream.open(filename);
@@ -36,8 +38,6 @@ double *read_input(string filename, int &n, int &dim) {
     string _discard;
     stream >> n;
     getline(stream, _discard);
-
-    double *data = new double[n];
 
     // read each data point
     for (int i = 0; i < n; i++) {
@@ -51,7 +51,7 @@ double *read_input(string filename, int &n, int &dim) {
         int dim_counter = 0;
         double val;
         while (line_stream >> val) {
-            data[i] = val;
+            data.push_back(val);
             dim_counter++;
         }
         dim = dim_counter;
