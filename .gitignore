@@ -23,3 +23,5 @@
 *.lib
 
 # Executables
+kmeans
+kmeans.exe
