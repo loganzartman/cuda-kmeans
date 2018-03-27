@@ -1,10 +1,12 @@
 #include "km_cpu.h"
 #include <algorithm>
+#include <chrono>
 #include "point.h"
 
 void km_cpu_run(const KMParams &kmp, point_data_t *data,
-                point_data_t *centroids) {
+                point_data_t *centroids, std::chrono::duration<double> &t) {
     using namespace std;
+    using namespace std::chrono;
 
     // mapping of centroid index to number of associated points
     unsigned centroid_counts[kmp.clusters];
@@ -12,7 +14,8 @@ void km_cpu_run(const KMParams &kmp, point_data_t *data,
     // mapping of point index to associated centroid index
     unsigned centroid_map[kmp.n];
 
-    // TODO: start timer
+    // start timer
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     // do work
     unsigned i = 0;
@@ -27,10 +30,14 @@ void km_cpu_run(const KMParams &kmp, point_data_t *data,
         km_cpu_recompute_centroids(kmp, data, centroids, centroid_counts,
                                    centroid_map);
 
+        // TODO: convergence test
+
         ++i;
     }
 
-    // TODO: stop timer
+    // stop timer
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    t = t2 - t1;
 }
 
 /**

@@ -1,5 +1,5 @@
 CXX      = g++
-CXXFLAGS = -std=c++14
+CXXFLAGS = -std=c++14 -Ofast
 LDFLAGS  = 
 LDLIBS   = -lboost_program_options
 

@@ -11,6 +11,8 @@
 using namespace std;
 
 int main(int argc, char const *argv[]) {
+    using namespace std::chrono;
+
     KMParams kmp(argc, argv);
     kmp.print_params();
 
@@ -29,7 +31,13 @@ int main(int argc, char const *argv[]) {
     random_centroids(kmp, data, centroids);
 
     // run k-means
-    km_cpu_run(kmp, data, centroids);
+    duration<double> dt;
+    km_cpu_run(kmp, data, centroids, dt);
+
+    // output timing
+    cout << "statistics" << endl;
+    cout << "time_us" << endl;
+    cout << duration_cast<microseconds>(dt).count() << endl << endl;
 
     // output centroids
     cout << "centroids" << endl;
