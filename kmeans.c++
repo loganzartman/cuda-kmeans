@@ -1,7 +1,9 @@
 #include <iostream>
+#include "KMParams.h"
 
 using namespace std;
 int main(int argc, char const *argv[]) {
-	cout << "Hello world!" << endl;	
-	return 0;
+    KMParams kmp(argc, argv);
+    kmp.print_params();
+    return 0;
 }
