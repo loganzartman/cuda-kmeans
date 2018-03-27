@@ -34,8 +34,8 @@ void point_add(const point_data_t *data_src, unsigned idx_src,
     }
 }
 
-void point_scale(point_data_t *data_dst, unsigned idx_dst, unsigned point_dim,
-                 point_data_t scalar) {
+void point_scale(point_data_t *data_dst, unsigned idx_dst, point_data_t scalar,
+                 unsigned point_dim) {
     for (int i = 0; i < point_dim; ++i) {
         data_dst[idx_dst + i] *= scalar;
     }

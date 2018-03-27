@@ -16,7 +16,7 @@ point_data_t point_dist(const point_data_t *data_a, unsigned idx_a,
 void point_add(const point_data_t *data_src, unsigned idx_src,
                point_data_t *data_dst, unsigned idx_dst, unsigned point_dim);
 
-void point_scale(point_data_t *data_dst, unsigned idx_dst, unsigned point_dim,
-                 point_data_t scalar);
+void point_scale(point_data_t *data_dst, unsigned idx_dst, point_data_t scalar,
+                 unsigned point_dim);
 
 #endif
