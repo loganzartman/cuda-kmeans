@@ -1,3 +1,6 @@
+#ifndef KMPARAMS_H
+#define KMPARAMS_H
+
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
@@ -59,3 +62,5 @@ struct KMParams {
         cout << endl;
     }
 };
+
+#endif
