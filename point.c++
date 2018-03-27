@@ -21,7 +21,7 @@ point_data_t point_dist(const point_data_t *data_a, unsigned idx_a,
                         unsigned point_dim) {
     point_data_t sum = 0;
     for (int i = 0; i < point_dim; ++i) {
-        const point_data_t dx = data_b[idx_a + i] - data_a[idx_b + i];
+        const point_data_t dx = data_b[idx_b + i] - data_a[idx_a + i];
         sum += dx;
     }
     return sqrt(sum);

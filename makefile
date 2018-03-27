@@ -1,7 +1,9 @@
 CXX      = g++
 CXXFLAGS = -std=c++14 -Ofast
+# CXXFLAGS = -std=c++14 -Og -g -fsanitize=address
 LDFLAGS  = 
 LDLIBS   = -lboost_program_options
+# LDLIBS   = -lasan -lboost_program_options
 
 all: kmeans
 
@@ -17,6 +19,7 @@ format:
 clean:
 	-rm -f *.o
 	-rm -f *.gch
+	-rm -f vgcore.*
 	-rm -f kmeans
 
 kmeans: kmeans.o point.o km_cpu.o

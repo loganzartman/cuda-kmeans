@@ -3,16 +3,19 @@
 #include <chrono>
 #include "point.h"
 
-void km_cpu_run(const KMParams &kmp, point_data_t *data,
-                point_data_t *centroids, std::chrono::duration<double> &t) {
+void km_cpu_run(const KMParams &kmp, const point_data_t *data,
+                point_data_t *centroids, std::chrono::duration<double> &t,
+                unsigned &iterations) {
     using namespace std;
     using namespace std::chrono;
 
+    point_data_t *old_centroids = new point_data_t[kmp.clusters * kmp.dim];
+
     // mapping of centroid index to number of associated points
-    unsigned centroid_counts[kmp.clusters];
+    unsigned *centroid_counts = new unsigned[kmp.clusters];
 
     // mapping of point index to associated centroid index
-    unsigned centroid_map[kmp.n];
+    unsigned *centroid_map = new unsigned[kmp.n];
 
     // start timer
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -27,17 +30,24 @@ void km_cpu_run(const KMParams &kmp, point_data_t *data,
         km_cpu_map_nearest(kmp, data, centroids, centroid_counts, centroid_map);
 
         // compute new centroids as avg of all points mapped to each centroid
+        copy(centroids, centroids + kmp.clusters, old_centroids);
         km_cpu_recompute_centroids(kmp, data, centroids, centroid_counts,
                                    centroid_map);
 
-        // TODO: convergence test
-
         ++i;
+        if (km_cpu_converged(kmp, old_centroids, centroids))
+            break;
     }
 
     // stop timer
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     t = t2 - t1;
+
+    iterations = i;
+
+    delete[] old_centroids;
+    delete[] centroid_counts;
+    delete[] centroid_map;
 }
 
 /**
@@ -98,4 +108,19 @@ void km_cpu_recompute_centroids(const KMParams &kmp, const point_data_t *data,
         const point_data_t scalar = (point_data_t)1 / centroid_counts[c];
         point_scale(centroids, cidx, scalar, kmp.dim);
     }
+}
+
+bool km_cpu_converged(const KMParams &kmp, const point_data_t *old_centroids,
+                      const point_data_t *centroids) {
+    using namespace std;
+
+    // compute maximum distance from old centroid to new centroid
+    point_data_t maxdist = 0;
+    for (int i = 0; i < kmp.clusters; ++i) {
+        const unsigned idx = i * kmp.dim;
+        const point_data_t dist =
+            point_dist(old_centroids, idx, centroids, idx, kmp.dim);
+        maxdist = dist > maxdist ? dist : maxdist;
+    }
+    return maxdist < kmp.threshold;
 }

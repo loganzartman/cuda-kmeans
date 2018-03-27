@@ -23,27 +23,31 @@ int main(int argc, char const *argv[]) {
     cout << endl;
 
     // copy data into array
-    point_data_t data[kmp.n * kmp.dim];
+    point_data_t *data = new point_data_t[kmp.n * kmp.dim];
     copy(data_vec.begin(), data_vec.end(), data);
 
     // randomize centroids
-    point_data_t centroids[kmp.clusters];
+    point_data_t *centroids = new point_data_t[kmp.clusters * kmp.dim];
     random_centroids(kmp, data, centroids);
 
     // run k-means
+    unsigned iterations;
     duration<double> dt;
-    km_cpu_run(kmp, data, centroids, dt);
+    km_cpu_run(kmp, data, centroids, dt, iterations);
 
     // output timing
     cout << "statistics" << endl;
-    cout << "time_us" << endl;
-    cout << duration_cast<microseconds>(dt).count() << endl << endl;
+    cout << "time_us,iterations" << endl;
+    cout << duration_cast<microseconds>(dt).count();
+    cout << "," << iterations << endl << endl;
 
     // output centroids
     cout << "centroids" << endl;
     print_points(kmp, centroids, kmp.clusters);
     cout << endl;
 
+    delete[] data;
+    delete[] centroids;
     return 0;
 }
 
@@ -103,7 +107,7 @@ void random_centroids(const KMParams &kmp, const point_data_t *data,
     mt19937 twister(rd());
 
     // create indices
-    unsigned indices[kmp.n];
+    unsigned *indices = new unsigned[kmp.n];
     iota(indices, indices + kmp.n, 0);
     shuffle(indices, indices + kmp.n, twister);
 
@@ -111,6 +115,7 @@ void random_centroids(const KMParams &kmp, const point_data_t *data,
         const unsigned src = indices[c];
         point_copy(data, src * kmp.dim, centroids, c * kmp.dim, kmp.dim);
     }
+    delete[] indices;
 }
 
 /**
