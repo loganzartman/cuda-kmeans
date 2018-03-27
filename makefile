@@ -14,7 +14,7 @@ add: format
 
 .PHONY: format
 format: 
-	clang-format -i *.c++ *.cu *.h
+	clang-format -i *.c++ *.cu *.h *.cuh 
 
 .PHONY: clean
 clean:

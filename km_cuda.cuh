@@ -3,7 +3,7 @@
 
 #include "km_cuda.h"
 
-__global__
-void test_cuda();
+__global__ void test_cuda(const KMParams &kmp, const point_data_t *data,
+                          point_data_t *centroids);
 
 #endif
