@@ -43,6 +43,7 @@ struct KMParams {
         clusters = vm["clusters"].as<int>();
         threshold = vm["threshold"].as<double>();
         iterations = vm["iterations"].as<int>();
+        workers = vm["workers"].as<int>();
         input = vm["input"].as<string>();
         n = -1;
         dim = -1;

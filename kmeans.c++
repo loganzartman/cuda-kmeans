@@ -112,6 +112,15 @@ void random_centroids(const KMParams &kmp, const point_data_t *data,
  * @param[in] n    how many points are in data
  */
 void print_points(const KMParams &kmp, const point_data_t *data, unsigned n) {
+    // print header
+    for (int d = 0; d < kmp.dim; ++d) {
+        if (d > 0)
+            cout << ",";
+        cout << "dim_" << d;
+    }
+    cout << endl;
+
+    // print data
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d < kmp.dim; ++d) {
             if (d > 0)
