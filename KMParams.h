@@ -50,6 +50,7 @@ struct KMParams {
 
     void print_params() {
         using namespace std;
+        cout << "params" << endl;
         cout << "clusters,threshold,workers,iterations" << endl;
         cout << clusters << ",";
         cout << threshold << ",";
