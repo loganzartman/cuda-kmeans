@@ -25,3 +25,5 @@
 # Executables
 kmeans
 kmeans.exe
+
+.nfs*

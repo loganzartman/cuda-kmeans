@@ -105,6 +105,7 @@ void km_cpu_recompute_centroids(const KMParams &kmp, const point_data_t *data,
     // average
     for (int c = 0; c < kmp.clusters; ++c) {
         const int cidx = centroid_map[c] * kmp.dim;
+        assert(centroid_counts[c] > 0);
         const point_data_t scalar = (point_data_t)1 / centroid_counts[c];
         point_scale(centroids, cidx, scalar, kmp.dim);
     }

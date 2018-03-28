@@ -37,3 +37,15 @@ point.o: point.c++ point.h
 
 km_cpu.o: km_cpu.c++ km_cpu.h KMParams.h point.h
 	$(CXX) $(CXXFLAGS) km_cpu.c++ -c
+
+.PHONY: test1
+test1: kmeans
+	./kmeans --cpu --input samples/random-n2048-d16-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
+
+.PHONY: test2
+test2: kmeans
+	./kmeans --cpu --input samples/random-n16384-d24-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
+
+.PHONY: test3
+test3: kmeans
+	./kmeans --cpu --input samples/random-n65536-d32-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
