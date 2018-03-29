@@ -1,8 +1,8 @@
-CXX      = g++ -Og -g
+CXX      = g++
 CXXFLAGS = -std=c++14 -Ofast
 LDFLAGS  = -L/opt/cuda-8.0/lib64 
 LDLIBS   = -lboost_program_options -lcuda -lcudart
-NVFLAGS  = -std=c++11 -arch=sm_61 -G -g
+NVFLAGS  = -std=c++11 -arch=sm_61 -O3
 NVLDFLAGS= 
 NVLDLIBS =
 
