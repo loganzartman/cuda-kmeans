@@ -45,8 +45,14 @@ int main(int argc, char const *argv[]) {
     cout << duration_cast<microseconds>(dt).count();
     cout << "," << iterations << endl << endl;
 
+    if (kmp.print_points) {
+        cout << "points" << endl;
+        print_points(kmp, data, kmp.n);
+        cout << endl;
+    }
+
     // output centroids
-    cout << "centroids" << endl;
+    cout << "clusters" << endl;
     print_points(kmp, centroids, kmp.clusters);
     cout << endl;
 

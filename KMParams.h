@@ -14,6 +14,7 @@ struct KMParams {
     unsigned dim;
     std::string input;
     bool cpu;
+    bool print_points;
 
     KMParams(int argc, const char *argv[]) {
         using namespace std;
@@ -32,7 +33,9 @@ struct KMParams {
             "workers", value<int>()->default_value(1), "number of threads")(
             "input", value<string>()->required(), "input file path")(
             "cpu", bool_switch()->default_value(false),
-            "run CPU implementation instead of CUDA");
+            "run CPU implementation instead of CUDA")(
+            "print-points", bool_switch()->default_value(false),
+            "output the list of input points in CSV format");
 
         // parse options
         store(parse_command_line(argc, argv, desc), vm);
@@ -47,16 +50,18 @@ struct KMParams {
         workers = vm["workers"].as<int>();
         input = vm["input"].as<string>();
         cpu = vm["cpu"].as<bool>();
+        print_points = vm["print-points"].as<bool>();
         n = 0;
         dim = 0;
     }
     KMParams(int clusters, double threshold, int workers, int iterations,
-             bool cpu, unsigned n, unsigned dim)
+             bool cpu, bool print_points, unsigned n, unsigned dim)
         : clusters(clusters),
           threshold(threshold),
           workers(workers),
           iterations(iterations),
           cpu(cpu),
+          print_points(print_points),
           n(n),
           dim(dim) {}
     KMParams(const KMParams &kmp) = default;
