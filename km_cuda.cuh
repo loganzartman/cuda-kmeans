@@ -4,6 +4,7 @@
 #include "cuda.h"
 #include "km_cuda.h"
 #include "point.h"
+#define SHARED_MEM_FLAG true
 #define BLOCK_SIZE 256
 
 #define cudachk(ans) \
@@ -24,11 +25,21 @@ __global__ void km_cuda_map_nearest(const KMParams *kmp,
                                     unsigned *centroid_counts,
                                     unsigned *centroid_map);
 
+__global__ void km_cuda_map_nearest_noshare(const KMParams *kmp,
+                                    const point_data_t *data,
+                                    const point_data_t *centroids,
+                                    unsigned *centroid_counts,
+                                    unsigned *centroid_map);
+
 __global__ void km_cuda_recompute_centroids(const KMParams *kmp,
                                             const point_data_t *data,
                                             point_data_t *new_centroids,
                                             const unsigned *centroid_counts,
                                             const unsigned *centroid_map);
+
+__global__ void km_cuda_recompute_centroids_noshare(
+    const KMParams *kmp, const point_data_t *data, point_data_t *new_centroids,
+    const unsigned *centroid_counts, const unsigned *centroid_map);
 
 __global__ void km_cuda_convergence(const KMParams *kmp,
                                     const point_data_t *old_centroids,
