@@ -1,7 +1,13 @@
 ifneq ($(wildcard /opt/cuda-8.0/.),)
-	CUDADIR = /opt/cuda-8.0/lib64
+	CUDADIR = /opt/cuda-8.0/lib64  # UTCS lab machines
 else
-	CUDADIR = /opt/cuda/lib64
+	CUDADIR = /opt/cuda/lib64      # alternative
+endif
+
+ifneq ($(shell which python3),)
+	PY = python3 # UTCS lab machines
+else
+	PY = python  # alternative
 endif
 
 CXX      = g++
@@ -29,6 +35,7 @@ clean:
 	-rm -f *.gch
 	-rm -f vgcore.*
 	-rm -f kmeans
+	-rm -rf results
 
 kmeans: kmeans.o km_cpu.o cuda.a
 	$(CXX) $(LDFLAGS) kmeans.o km_cpu.o cuda.a -o kmeans $(LDLIBS)
@@ -55,14 +62,9 @@ cuda.a: km_cuda.dlink.o point.dlink.o
 km_cpu.o: km_cpu.c++ km_cpu.h KMParams.h point.h
 	$(CXX) $(CXXFLAGS) km_cpu.c++ -c
 
-.PHONY: test1
-test1: kmeans
-	./kmeans --cpu --input samples/random-n2048-d16-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
+results:
+	mkdir results
 
-.PHONY: test2
-test2: kmeans
-	./kmeans --cpu --input samples/random-n16384-d24-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
-
-.PHONY: test3
-test3: kmeans
-	./kmeans --cpu --input samples/random-n65536-d32-c16.txt --iterations 20 --threshold 0.0000001 --clusters 16
+.PHONY: tests
+tests: kmeans results
+	$(PY) scripts/tests.py results/test.pdf
