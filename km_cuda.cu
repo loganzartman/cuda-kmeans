@@ -14,26 +14,27 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
 
     // copy params to device
     KMParams *kmp;
-    cudaMalloc((void **)&kmp, sizeof(KMParams));
-    cudaMemcpy(kmp, &host_kmp, sizeof(KMParams), cudaMemcpyHostToDevice);
+    cudachk(cudaMalloc((void **)&kmp, sizeof(KMParams)));
+    cudachk(
+        cudaMemcpy(kmp, &host_kmp, sizeof(KMParams), cudaMemcpyHostToDevice));
 
     // copy points to device
     const unsigned data_size = host_kmp.n * host_kmp.dim * sizeof(point_data_t);
     point_data_t *data;
-    cudaMalloc(&data, data_size);
-    cudaMemcpy(data, host_data, data_size, cudaMemcpyHostToDevice);
+    cudachk(cudaMalloc(&data, data_size));
+    cudachk(cudaMemcpy(data, host_data, data_size, cudaMemcpyHostToDevice));
 
     // copy centroids to device
     const unsigned centroids_size =
         host_kmp.clusters * host_kmp.dim * sizeof(point_data_t);
     point_data_t *centroids;
-    cudaMalloc(&centroids, centroids_size);
-    cudaMemcpy(centroids, host_centroids, centroids_size,
-               cudaMemcpyHostToDevice);
+    cudachk(cudaMalloc(&centroids, centroids_size));
+    cudachk(cudaMemcpy(centroids, host_centroids, centroids_size,
+                       cudaMemcpyHostToDevice));
 
     // create new centroids on device
     point_data_t *new_centroids;
-    cudaMalloc(&new_centroids, centroids_size);
+    cudachk(cudaMalloc(&new_centroids, centroids_size));
 
     // create old centroids on host
     point_data_t *host_old_centroids = new point_data_t[centroids_size];
@@ -42,12 +43,12 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     unsigned *host_centroid_counts =
         new unsigned[host_kmp.clusters * host_kmp.dim];
     unsigned *centroid_counts;
-    cudaMalloc(&centroid_counts, host_kmp.clusters * host_kmp.dim);
+    cudachk(cudaMalloc(&centroid_counts, host_kmp.clusters * host_kmp.dim));
 
     // create mapping from point to nearest centroid
     unsigned *host_centroid_map = new unsigned[host_kmp.n * host_kmp.dim];
     unsigned *centroid_map;
-    cudaMalloc(&centroid_map, host_kmp.n * host_kmp.dim);
+    cudachk(cudaMalloc(&centroid_map, host_kmp.n * host_kmp.dim));
 
     // start timer
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -57,8 +58,9 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     unsigned i = 0;
     while (i < host_kmp.iterations || host_kmp.iterations == 0) {
         // clear output data
-        cudaMemset(&new_centroids, 0, centroids_size);
-        cudaMemset(&centroid_counts, 0, host_kmp.clusters * host_kmp.dim);
+        cudachk(cudaMemset(new_centroids, 0, centroids_size));
+        cudachk(
+            cudaMemset(centroid_counts, 0, host_kmp.clusters * host_kmp.dim));
 
         // map nearest and sum new centroids
         km_cuda_kernel<<<num_blocks, BLOCK_SIZE>>>(
@@ -72,10 +74,11 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
         }
 
         // copy centroids and counts back
-        cudaMemcpy(host_centroids, new_centroids, centroids_size,
-                   cudaMemcpyDeviceToHost);
-        cudaMemcpy(host_centroid_counts, centroid_counts,
-                   host_kmp.clusters * host_kmp.dim, cudaMemcpyDeviceToHost);
+        cudachk(cudaMemcpy(host_centroids, new_centroids, centroids_size,
+                           cudaMemcpyDeviceToHost));
+        cudachk(cudaMemcpy(host_centroid_counts, centroid_counts,
+                           host_kmp.clusters * host_kmp.dim,
+                           cudaMemcpyDeviceToHost));
 
         // scale centroids to produce averages
         for (int c = 0; c < host_kmp.clusters; ++c) {
@@ -92,8 +95,8 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
             break;
 
         // store new centroids into old
-        cudaMemcpy(centroids, host_centroids, centroids_size,
-                   cudaMemcpyHostToDevice);
+        cudachk(cudaMemcpy(centroids, host_centroids, centroids_size,
+                           cudaMemcpyHostToDevice));
     }
     iterations = i;
 
@@ -172,13 +175,6 @@ __device__ void km_cuda_recompute_centroids(const KMParams *kmp,
                                             point_data_t *new_centroids,
                                             const unsigned *centroid_counts,
                                             const unsigned *centroid_map) {
-    // initialize shared centroids
-    __shared__ point_data_t shared_centroids[2048];
-    if (threadIdx.x == 0)
-        for (int i = 0; i < 2048; ++i)
-            shared_centroids[i] = 0;
-    __syncthreads();
-
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
     const int stride = blockDim.x * gridDim.x;
 
@@ -187,13 +183,6 @@ __device__ void km_cuda_recompute_centroids(const KMParams *kmp,
         const int idx = i * kmp->dim;
         const int cidx = centroid_map[i] * kmp->dim;
         for (int d = 0; d < kmp->dim; ++d)
-            atomicAdd(&shared_centroids[cidx + d], data[idx + d]);
-    }
-
-    // merge
-    for (int c = index; c < kmp->clusters; c += stride) {
-        const int cidx = c * kmp->dim;
-        for (int d = 0; d < kmp->dim; ++d)
-            atomicAdd(&new_centroids[cidx + d], shared_centroids[cidx + d]);
+            atomicAdd(&new_centroids[cidx + d], data[idx + d]);
     }
 }

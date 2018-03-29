@@ -53,6 +53,9 @@ def main():
         gpu_times.append(test_time(gpu_cmd))
     speedups = [cpu / gpu for cpu, gpu in zip(cpu_times, gpu_times)]
 
+    print("CPU times: ", cpu_times)
+    print("GPU times: ", gpu_times)
+
     # plot test results
     cmap = plt.get_cmap("summer")
     n_points = len(speedups)
@@ -88,7 +91,6 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", lege
     xvals = range(len(barGroups))
     
     for i, bars in enumerate(zip(*barGroups)):
-        print(bars)
         plt.bar(
             x = offset(xvals, i * width/maxlen), 
             height = bars, 
