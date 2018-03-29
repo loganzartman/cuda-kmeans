@@ -1,5 +1,4 @@
 #include "point.h"
-#include <cmath>
 
 unsigned point_idx(unsigned point, unsigned dim, unsigned point_dim) {
     return point_dim * point + dim;
@@ -22,9 +21,9 @@ point_data_t point_dist(const point_data_t *data_a, unsigned idx_a,
     point_data_t sum = 0;
     for (int i = 0; i < point_dim; ++i) {
         const point_data_t dx = data_b[idx_b + i] - data_a[idx_a + i];
-        sum += dx;
+        sum += dx * dx;
     }
-    return sqrt(sum);
+    return sum;
 }
 
 void point_add(const point_data_t *data_src, unsigned idx_src,
@@ -40,3 +39,4 @@ void point_scale(point_data_t *data_dst, unsigned idx_dst, point_data_t scalar,
         data_dst[idx_dst + i] *= scalar;
     }
 }
+

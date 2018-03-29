@@ -26,4 +26,8 @@
 kmeans
 kmeans.exe
 
+# Python
+*.pyc
+__pycache__
+
 .nfs*
