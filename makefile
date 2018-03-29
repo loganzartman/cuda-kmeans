@@ -1,3 +1,5 @@
+HOST=$(shell hostname)
+
 ifneq ($(wildcard /opt/cuda-8.0/.),)
 	CUDADIR = /opt/cuda-8.0/lib64  # UTCS lab machines
 else
@@ -35,7 +37,6 @@ clean:
 	-rm -f *.gch
 	-rm -f vgcore.*
 	-rm -f kmeans
-	-rm -rf results
 
 kmeans: kmeans.o km_cpu.o cuda.a
 	$(CXX) $(LDFLAGS) kmeans.o km_cpu.o cuda.a -o kmeans $(LDLIBS)
@@ -67,4 +68,4 @@ results:
 
 .PHONY: tests
 tests: kmeans results
-	$(PY) scripts/tests.py results/test.pdf
+	$(PY) scripts/tests.py results/step2-$(HOST).pdf

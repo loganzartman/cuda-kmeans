@@ -11,6 +11,7 @@ import csv_mt
 import matplotlib as mpl
 mpl.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
 
 CSI         = "\x1b["     # ANSI CSI escape sequence
 CSI_UP      = CSI + "1A"  # move cursor up
@@ -58,14 +59,14 @@ def main():
     colors = [cmap(i / (n_points) + 0.5 / n_points) for i in range(n_points)]
     
     plot_bars(
-            barGroups = [speedups],
-            barNames = input_names,
-            groupNames = [""],
-            ylabel = "Speedup vs. CPU",
-            title = "GPU vs. CPU Scalability",
-            legendTitle = "Input file",
-            colors = colors,
-            chart_width = 0.5)
+        barGroups = [speedups],
+        barNames = input_names,
+        groupNames = ["Step 2 CUDA"],
+        ylabel = "Speedup factor",
+        title = "Speedup vs. CPU",
+        legendTitle = "Input file",
+        colors = colors,
+        chart_width = 0.5)
     # plt.show()
     plt.savefig(path, bbox_inches="tight", dpi=300)
     print("writing plot to {}".format(path))
@@ -96,7 +97,7 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", lege
 
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.set_xticks(offset(xvals, width / 2))
+    ax.set_xticks(offset(xvals, width / 2 - width / maxlen / 2))
     ax.set_xticklabels(groupNames)
 
     # Shrink current axis by 20%
@@ -106,7 +107,7 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", lege
     # Put a legend to the right of the current axis
     ax.legend(barNames, title=legendTitle, loc="upper left", bbox_to_anchor=(1, 1))
 
-def test_time(cmd, samples=6, warmup=2):
+def test_time(cmd, samples=10, warmup=2):
     """Run shell command cmd with a series of arguments.
     cmd      - a shell command to run.
     samples  - how many times to run the test and average timing data.

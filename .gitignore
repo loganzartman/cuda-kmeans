@@ -30,5 +30,4 @@ kmeans.exe
 *.pyc
 __pycache__
 
-results
 .nfs*
