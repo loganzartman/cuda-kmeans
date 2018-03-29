@@ -44,8 +44,9 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     // run kernel
     const int block_size = 256;
     const int num_blocks = (host_kmp.n + block_size - 1) / block_size;
-    km_cuda_map_nearest<<<num_blocks, block_size>>>(
-        kmp, data, centroids, centroid_counts, centroid_map);
+
+    km_cuda_kernel<<<num_blocks, block_size>>>(kmp, data, centroids,
+                                               centroid_counts, centroid_map);
     // cudaDeviceSynchronize();
 
     // copy counts back
@@ -60,18 +61,22 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     cudaMemcpy(host_centroids, centroids, centroids_size,
                cudaMemcpyDeviceToHost);
 
-    for (int c = 0; c < host_kmp.clusters; ++c) {
-        cout << host_centroid_counts[c] << " ";
-    }
-    cout << endl;
-
     delete[] host_centroid_counts;
     delete[] host_centroid_map;
     cudaFree(centroids);
     cudaFree(data);
 }
 
-__global__ void km_cuda_map_nearest(const KMParams *kmp,
+__global__ void km_cuda_kernel(const KMParams *kmp, const point_data_t *data,
+                               point_data_t *centroids,
+                               unsigned *centroid_counts,
+                               unsigned *centroid_map) {
+    km_cuda_map_nearest(kmp, data, centroids, centroid_counts, centroid_map);
+    km_cuda_recompute_centroids(kmp, data, centroids, centroid_counts,
+                                centroid_map);
+}
+
+__device__ void km_cuda_map_nearest(const KMParams *kmp,
                                     const point_data_t *data,
                                     const point_data_t *centroids,
                                     unsigned *centroid_counts,
@@ -101,5 +106,22 @@ __global__ void km_cuda_map_nearest(const KMParams *kmp,
 
         // add to mapping
         centroid_map[i] = nearest;
+    }
+}
+
+__device__ void km_cuda_recompute_centroids(const KMParams *kmp,
+                                            const point_data_t *data,
+                                            point_data_t *centroids,
+                                            const unsigned *centroid_counts,
+                                            const unsigned *centroid_map) {
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    const int stride = blockDim.x * gridDim.x;
+
+    // sum
+    for (int i = index; i < kmp->n; i += stride) {
+        const int idx = i * kmp->dim;
+        const int cidx = centroid_map[i] * kmp->dim;
+        for (int d = 0; d < kmp->dim; ++d)
+            atomicAdd(&centroids[cidx + d], data[idx + d]);
     }
 }
