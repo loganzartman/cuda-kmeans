@@ -18,21 +18,20 @@ inline void cuda_assert(cudaError_t code, const char *file, int line,
     }
 }
 
-__global__ void km_cuda_kernel(const KMParams *kmp, const point_data_t *data,
-                               const point_data_t *centroids,
-                               point_data_t *new_centroids,
-                               unsigned *centroid_counts,
-                               unsigned *centroid_map);
-
-__device__ void km_cuda_map_nearest(const KMParams *kmp,
+__global__ void km_cuda_map_nearest(const KMParams *kmp,
                                     const point_data_t *data,
                                     const point_data_t *centroids,
                                     unsigned *centroid_counts,
                                     unsigned *centroid_map);
 
-__device__ void km_cuda_recompute_centroids(const KMParams *kmp,
+__global__ void km_cuda_recompute_centroids(const KMParams *kmp,
                                             const point_data_t *data,
                                             point_data_t *new_centroids,
                                             const unsigned *centroid_counts,
                                             const unsigned *centroid_map);
+
+__global__ void km_cuda_convergence(const KMParams *kmp,
+                                    const point_data_t *old_centroids,
+                                    const point_data_t *centroids);
+
 #endif

@@ -6,6 +6,8 @@
 #include "km_cuda.cuh"
 #include "point.h"
 
+__device__ bool converged;
+
 void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
                  point_data_t *host_centroids, std::chrono::duration<double> &t,
                  unsigned &iterations) {
@@ -36,19 +38,24 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     point_data_t *new_centroids;
     cudachk(cudaMalloc(&new_centroids, centroids_size));
 
-    // create old centroids on host
-    point_data_t *host_old_centroids = new point_data_t[centroids_size];
-
     // create mapping from centroid to number of points closest to it
+    const unsigned centroid_counts_size =
+        host_kmp.clusters * host_kmp.dim * sizeof(unsigned);
     unsigned *host_centroid_counts =
         new unsigned[host_kmp.clusters * host_kmp.dim];
     unsigned *centroid_counts;
-    cudachk(cudaMalloc(&centroid_counts, host_kmp.clusters * host_kmp.dim));
+    cudachk(cudaMalloc(&centroid_counts, centroid_counts_size));
 
     // create mapping from point to nearest centroid
+    const unsigned centroid_map_size =
+        host_kmp.n * host_kmp.dim * sizeof(unsigned);
     unsigned *host_centroid_map = new unsigned[host_kmp.n * host_kmp.dim];
     unsigned *centroid_map;
-    cudachk(cudaMalloc(&centroid_map, host_kmp.n * host_kmp.dim));
+    cudachk(cudaMalloc(&centroid_map, centroid_map_size));
+
+    // store converged status
+    bool host_converged = false;
+    cudachk(cudaMemcpyToSymbol(converged, &host_converged, sizeof(bool)));
 
     // start timer
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -59,52 +66,39 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     while (i < host_kmp.iterations || host_kmp.iterations == 0) {
         // clear output data
         cudachk(cudaMemset(new_centroids, 0, centroids_size));
-        cudachk(
-            cudaMemset(centroid_counts, 0, host_kmp.clusters * host_kmp.dim));
+        cudachk(cudaMemset(centroid_counts, 0, centroid_counts_size));
 
         // map nearest and sum new centroids
-        km_cuda_kernel<<<num_blocks, BLOCK_SIZE>>>(
-            kmp, data, centroids, new_centroids, centroid_counts, centroid_map);
+        km_cuda_map_nearest<<<num_blocks, BLOCK_SIZE>>>(
+            kmp, data, centroids, centroid_counts, centroid_map);
 
-        // store old centroids
-        for (int c = 0; c < host_kmp.clusters; ++c) {
-            const int idx = c * host_kmp.dim;
-            point_copy(host_centroids, idx, host_old_centroids, idx,
-                       host_kmp.dim);
-        }
+        km_cuda_recompute_centroids<<<num_blocks, BLOCK_SIZE>>>(
+            kmp, data, new_centroids, centroid_counts, centroid_map);
 
-        // copy centroids and counts back
-        cudachk(cudaMemcpy(host_centroids, new_centroids, centroids_size,
-                           cudaMemcpyDeviceToHost));
-        cudachk(cudaMemcpy(host_centroid_counts, centroid_counts,
-                           host_kmp.clusters * host_kmp.dim,
-                           cudaMemcpyDeviceToHost));
-
-        // scale centroids to produce averages
-        for (int c = 0; c < host_kmp.clusters; ++c) {
-            const int idx = c * host_kmp.dim;
-            const point_data_t scalar =
-                (point_data_t)1 / host_centroid_counts[c];
-            point_scale(host_centroids, idx, scalar, host_kmp.dim);
-        }
+        km_cuda_convergence<<<num_blocks, BLOCK_SIZE>>>(
+            kmp, centroids, new_centroids);
 
         ++i;
 
         // test convergence
-        if (km_cuda_converged(host_kmp, host_old_centroids, host_centroids))
+        cudachk(cudaMemcpyFromSymbol(&host_converged, converged, sizeof(bool)));
+        if (host_converged)
             break;
 
         // store new centroids into old
-        cudachk(cudaMemcpy(centroids, host_centroids, centroids_size,
-                           cudaMemcpyHostToDevice));
+        cudachk(cudaMemcpy(centroids, new_centroids, centroids_size,
+                           cudaMemcpyDeviceToDevice));
     }
     iterations = i;
+
+    // copy centroids back
+    cudachk(cudaMemcpy(host_centroids, new_centroids, centroids_size,
+                       cudaMemcpyDeviceToHost));
 
     // stop timer
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     t = t2 - t1;
 
-    delete[] host_old_centroids;
     delete[] host_centroid_counts;
     delete[] host_centroid_map;
     cudaFree(centroids);
@@ -112,32 +106,7 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     cudaFree(data);
 }
 
-bool km_cuda_converged(const KMParams &kmp, const point_data_t *old_centroids,
-                       const point_data_t *centroids) {
-    using namespace std;
-
-    // compute maximum distance from old centroid to new centroid
-    point_data_t maxdist = 0;
-    for (int i = 0; i < kmp.clusters; ++i) {
-        const unsigned idx = i * kmp.dim;
-        const point_data_t dist =
-            point_dist(old_centroids, idx, centroids, idx, kmp.dim);
-        maxdist = dist > maxdist ? dist : maxdist;
-    }
-    return maxdist < kmp.threshold;
-}
-
-__global__ void km_cuda_kernel(const KMParams *kmp, const point_data_t *data,
-                               const point_data_t *centroids,
-                               point_data_t *new_centroids,
-                               unsigned *centroid_counts,
-                               unsigned *centroid_map) {
-    km_cuda_map_nearest(kmp, data, centroids, centroid_counts, centroid_map);
-    km_cuda_recompute_centroids(kmp, data, new_centroids, centroid_counts,
-                                centroid_map);
-}
-
-__device__ void km_cuda_map_nearest(const KMParams *kmp,
+__global__ void km_cuda_map_nearest(const KMParams *kmp,
                                     const point_data_t *data,
                                     const point_data_t *centroids,
                                     unsigned *centroid_counts,
@@ -170,7 +139,7 @@ __device__ void km_cuda_map_nearest(const KMParams *kmp,
     }
 }
 
-__device__ void km_cuda_recompute_centroids(const KMParams *kmp,
+__global__ void km_cuda_recompute_centroids(const KMParams *kmp,
                                             const point_data_t *data,
                                             point_data_t *new_centroids,
                                             const unsigned *centroid_counts,
@@ -180,9 +149,28 @@ __device__ void km_cuda_recompute_centroids(const KMParams *kmp,
 
     // sum
     for (int i = index; i < kmp->n; i += stride) {
+        const int c = centroid_map[i];
         const int idx = i * kmp->dim;
-        const int cidx = centroid_map[i] * kmp->dim;
+        const int cidx = c * kmp->dim;
+        const point_data_t scalar = (point_data_t)1 / centroid_counts[c];
         for (int d = 0; d < kmp->dim; ++d)
-            atomicAdd(&new_centroids[cidx + d], data[idx + d]);
+            atomicAdd(&new_centroids[cidx + d], data[idx + d] * scalar);
     }
+}
+
+__global__ void km_cuda_convergence(const KMParams *kmp,
+                                    const point_data_t *old_centroids,
+                                    const point_data_t *centroids) {
+    if (blockIdx.x != 0 || threadIdx.x != 0)
+        return;
+
+    // compute maximum distance from old centroid to new centroid
+    point_data_t maxdist = 0;
+    for (int i = 0; i < kmp->clusters; ++i) {
+        const unsigned idx = i * kmp->dim;
+        const point_data_t dist =
+            point_dist(old_centroids, idx, centroids, idx, kmp->dim);
+        maxdist = dist > maxdist ? dist : maxdist;
+    }
+    converged = maxdist < kmp->threshold;
 }
