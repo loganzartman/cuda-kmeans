@@ -1,6 +1,12 @@
+ifneq ($(wildcard /opt/cuda-8.0/.),)
+	CUDADIR = /opt/cuda-8.0/lib64
+else
+	CUDADIR = /opt/cuda/lib64
+endif
+
 CXX      = g++
 CXXFLAGS = -std=c++14 -Ofast
-LDFLAGS  = -L/opt/cuda-8.0/lib64 
+LDFLAGS  = -L$(CUDADIR)
 LDLIBS   = -lboost_program_options -lcuda -lcudart
 NVFLAGS  = -std=c++11 -arch=sm_61 -O3
 NVLDFLAGS= 
