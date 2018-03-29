@@ -5,8 +5,8 @@
 #include "KMParams.h"
 #include "point.h"
 
-void km_cuda_run(const KMParams &kmp, const point_data_t *data,
-                 point_data_t *centroids, std::chrono::duration<double> &t,
+void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
+                 point_data_t *host_centroids, std::chrono::duration<double> &t,
                  unsigned &iterations);
 
 #endif
