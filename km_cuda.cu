@@ -68,7 +68,7 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
         cudachk(cudaMemset(new_centroids, 0, centroids_size));
         cudachk(cudaMemset(centroid_counts, 0, centroid_counts_size));
 
-        if (SHARED_MEM_FLAG) {
+        if (host_kmp.shared_mem) {
             // find nearest centroids
             km_cuda_map_nearest<<<num_blocks, BLOCK_SIZE,centroid_counts_size>>>(
                 kmp, data, centroids, centroid_counts, centroid_map);

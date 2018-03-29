@@ -4,7 +4,6 @@
 #include "cuda.h"
 #include "km_cuda.h"
 #include "point.h"
-#define SHARED_MEM_FLAG true
 #define BLOCK_SIZE 256
 
 #define cudachk(ans) \

@@ -47,14 +47,20 @@ def main():
 
     # run tests and collect data
     cpu_times = []
+    cpu_mt_times = [2702, 16364, 76116]
     gpu_times = []
+    gpu_noshare_times = []
     for cpu_cmd, gpu_cmd in zip(cpu_cmds, gpu_cmds):
         cpu_times.append(test_time(cpu_cmd))
         gpu_times.append(test_time(gpu_cmd))
+        gpu_noshare_times.append(test_time(gpu_cmd + " --no-shared-mem"))
     speedups = [cpu / gpu for cpu, gpu in zip(cpu_times, gpu_times)]
+    speedups_mt = [cpu / gpu for cpu, gpu in zip(cpu_mt_times, gpu_times)]
+    speedups_noshare = [cpu / gpu for cpu, gpu in zip(cpu_times, gpu_noshare_times)]
 
     print("CPU times: ", cpu_times)
     print("GPU times: ", gpu_times)
+    print("GPU (non-shared) times: ", gpu_noshare_times)
 
     # plot test results
     cmap = plt.get_cmap("summer")
@@ -62,14 +68,14 @@ def main():
     colors = [cmap(i / (n_points) + 0.5 / n_points) for i in range(n_points)]
     
     plot_bars(
-        barGroups = [speedups],
+        barGroups = [speedups_mt, speedups_noshare, speedups],
         barNames = input_names,
-        groupNames = ["CUDA Shared"],
+        groupNames = ["CPU x8 Mutex", "CUDA", "CUDA Shared"],
         ylabel = "Speedup factor",
         title = "Speedup vs. CPU",
         legendTitle = "Input file",
         colors = colors,
-        chart_width = 0.5)
+        chart_width = 0.8)
     # plt.show()
     plt.savefig(path, bbox_inches="tight", dpi=300)
     print("writing plot to {}".format(path))
@@ -109,7 +115,7 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", lege
     # Put a legend to the right of the current axis
     ax.legend(barNames, title=legendTitle, loc="upper left", bbox_to_anchor=(1, 1))
 
-def test_time(cmd, samples=10, warmup=2):
+def test_time(cmd, samples=16, warmup=4):
     """Run shell command cmd with a series of arguments.
     cmd      - a shell command to run.
     samples  - how many times to run the test and average timing data.

@@ -15,6 +15,7 @@ struct KMParams {
     std::string input;
     bool cpu;
     bool print_points;
+    bool shared_mem;
 
     KMParams(int argc, const char *argv[]) {
         using namespace std;
@@ -35,7 +36,9 @@ struct KMParams {
             "cpu", bool_switch()->default_value(false),
             "run CPU implementation instead of CUDA")(
             "print-points", bool_switch()->default_value(false),
-            "output the list of input points in CSV format");
+            "output the list of input points in CSV format")(
+            "no-shared-mem", bool_switch()->default_value(false),
+            "disable CUDA shared memory");
 
         // parse options
         store(parse_command_line(argc, argv, desc), vm);
@@ -51,17 +54,19 @@ struct KMParams {
         input = vm["input"].as<string>();
         cpu = vm["cpu"].as<bool>();
         print_points = vm["print-points"].as<bool>();
+        shared_mem = !vm["no-shared-mem"].as<bool>();
         n = 0;
         dim = 0;
     }
     KMParams(int clusters, double threshold, int workers, int iterations,
-             bool cpu, bool print_points, unsigned n, unsigned dim)
+             bool cpu, bool print_points, bool shared_mem, unsigned n, unsigned dim)
         : clusters(clusters),
           threshold(threshold),
           workers(workers),
           iterations(iterations),
           cpu(cpu),
           print_points(print_points),
+          shared_mem(shared_mem),
           n(n),
           dim(dim) {}
     KMParams(const KMParams &kmp) = default;
@@ -70,12 +75,13 @@ struct KMParams {
     void print_params() {
         using namespace std;
         cout << "params" << endl;
-        cout << "clusters,threshold,workers,iterations,cpu" << endl;
+        cout << "clusters,threshold,workers,iterations,cpu,shared_mem" << endl;
         cout << clusters << ",";
         cout << threshold << ",";
         cout << workers << ",";
         cout << iterations << ",";
-        cout << cpu << endl;
+        cout << cpu << ",";
+        cout << shared_mem << endl;
         cout << endl;
     }
 };
