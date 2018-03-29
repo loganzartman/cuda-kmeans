@@ -3,6 +3,7 @@
 
 #include "km_cuda.h"
 #include "point.h"
+#define BLOCK_SIZE 256
 
 __global__ void km_cuda_kernel(const KMParams *kmp, const point_data_t *data,
                                const point_data_t *centroids,

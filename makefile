@@ -68,4 +68,4 @@ results:
 
 .PHONY: tests
 tests: kmeans results
-	$(PY) scripts/tests.py results/step2-$(HOST).pdf
+	$(PY) scripts/tests.py results/step3-$(HOST).pdf

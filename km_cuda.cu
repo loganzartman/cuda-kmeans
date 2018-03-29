@@ -52,8 +52,7 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
     // start timer
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-    const int block_size = 256;
-    const int num_blocks = (host_kmp.n + block_size - 1) / block_size;
+    const int num_blocks = (host_kmp.n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     unsigned i = 0;
     while (i < host_kmp.iterations || host_kmp.iterations == 0) {
@@ -62,7 +61,7 @@ void km_cuda_run(const KMParams &host_kmp, const point_data_t *host_data,
         cudaMemset(&centroid_counts, 0, host_kmp.clusters * host_kmp.dim);
 
         // map nearest and sum new centroids
-        km_cuda_kernel<<<num_blocks, block_size>>>(
+        km_cuda_kernel<<<num_blocks, BLOCK_SIZE>>>(
             kmp, data, centroids, new_centroids, centroid_counts, centroid_map);
 
         // store old centroids
@@ -173,6 +172,13 @@ __device__ void km_cuda_recompute_centroids(const KMParams *kmp,
                                             point_data_t *new_centroids,
                                             const unsigned *centroid_counts,
                                             const unsigned *centroid_map) {
+    // initialize shared centroids
+    __shared__ point_data_t shared_centroids[2048];
+    if (threadIdx.x == 0)
+        for (int i = 0; i < 2048; ++i)
+            shared_centroids[i] = 0;
+    __syncthreads();
+
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
     const int stride = blockDim.x * gridDim.x;
 
@@ -181,6 +187,13 @@ __device__ void km_cuda_recompute_centroids(const KMParams *kmp,
         const int idx = i * kmp->dim;
         const int cidx = centroid_map[i] * kmp->dim;
         for (int d = 0; d < kmp->dim; ++d)
-            atomicAdd(&new_centroids[cidx + d], data[idx + d]);
+            atomicAdd(&shared_centroids[cidx + d], data[idx + d]);
+    }
+
+    // merge
+    for (int c = index; c < kmp->clusters; c += stride) {
+        const int cidx = c * kmp->dim;
+        for (int d = 0; d < kmp->dim; ++d)
+            atomicAdd(&new_centroids[cidx + d], shared_centroids[cidx + d]);
     }
 }

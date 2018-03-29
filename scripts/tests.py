@@ -61,7 +61,7 @@ def main():
     plot_bars(
         barGroups = [speedups],
         barNames = input_names,
-        groupNames = ["Step 2 CUDA"],
+        groupNames = ["CUDA Shared"],
         ylabel = "Speedup factor",
         title = "Speedup vs. CPU",
         legendTitle = "Input file",
