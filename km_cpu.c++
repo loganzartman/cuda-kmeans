@@ -23,9 +23,6 @@ void km_cpu_run(const KMParams &kmp, const point_data_t *data,
     // do work
     unsigned i = 0;
     while (i < kmp.iterations || kmp.iterations == 0) {
-        // reset counts
-        fill(centroid_counts, centroid_counts + kmp.clusters, 0);
-
         // find nearest centroids to each point
         km_cpu_map_nearest(kmp, data, centroids, centroid_counts, centroid_map);
 
@@ -62,6 +59,8 @@ void km_cpu_map_nearest(const KMParams &kmp, const point_data_t *data,
                         const point_data_t *centroids,
                         unsigned *centroid_counts, unsigned *centroid_map) {
     using namespace std;
+    fill(centroid_counts, centroid_counts + kmp.clusters, 0);
+    fill(centroid_map, centroid_map + kmp.n, -1);
 
     // find centroid nearest to each point
     for (int i = 0; i < kmp.n; ++i) {
@@ -72,7 +71,7 @@ void km_cpu_map_nearest(const KMParams &kmp, const point_data_t *data,
         point_data_t nearest_dist =
             point_dist(data, idx, centroids, 0, kmp.dim);
 
-        for (int j = 0; j < kmp.clusters; ++j) {
+        for (int j = 1; j < kmp.clusters; ++j) {
             const int oidx = j * kmp.dim;
             point_data_t dist = point_dist(data, idx, centroids, oidx, kmp.dim);
             if (dist < nearest_dist) {
@@ -94,6 +93,7 @@ void km_cpu_recompute_centroids(const KMParams &kmp, const point_data_t *data,
                                 const unsigned *centroid_counts,
                                 const unsigned *centroid_map) {
     using namespace std;
+    fill(centroids, centroids + kmp.clusters * kmp.dim, 0);
 
     // sum
     for (int i = 0; i < kmp.n; ++i) {
@@ -104,7 +104,7 @@ void km_cpu_recompute_centroids(const KMParams &kmp, const point_data_t *data,
 
     // average
     for (int c = 0; c < kmp.clusters; ++c) {
-        const int cidx = centroid_map[c] * kmp.dim;
+        const int cidx = c * kmp.dim;
         assert(centroid_counts[c] > 0);
         const point_data_t scalar = (point_data_t)1 / centroid_counts[c];
         point_scale(centroids, cidx, scalar, kmp.dim);
